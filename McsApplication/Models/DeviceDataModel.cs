@@ -9,5 +9,6 @@ namespace McsApplication.Models
 {
     public class DeviceDataModel : DeviceData
     {
+
     }
 }
