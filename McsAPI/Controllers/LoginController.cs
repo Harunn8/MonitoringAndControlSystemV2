@@ -1,6 +1,37 @@
-﻿namespace McsAPI.Controllers
+﻿using Microsoft.AspNetCore.Mvc;
+using Services;
+
+namespace McsAPI.Controllers
 {
-    public class LoginController
+    [ApiController]
+    [Route("api/[controller]")]
+    public class LoginController : ControllerBase
     {
+        private readonly LoginService _loginService;
+
+        public LoginController(LoginService loginService)
+        {
+            _loginService = loginService;
+        }
+
+        [HttpPost("Authenticate")]
+        public async Task<IActionResult> Authenticate(LoginRequest loginRequest)
+        {
+            var validateUser = await _loginService.ValidateUser(loginRequest.Username, loginRequest.Password);
+
+            if (validateUser)
+            {
+                var token = _loginService.GenerateJwtToken(loginRequest.Username);
+                return Ok(new { Token = token });
+            }
+
+            return Unauthorized("Invalid username or password");
+        }
+    }
+
+    public class LoginRequest
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
     }
 }
