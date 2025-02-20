@@ -6,7 +6,16 @@ using System.Threading.Tasks;
 
 namespace McsCore.Entities
 {
-    internal class MongoDBSettings
+    public class MongoDBSettings
     {
+        public string DatabaseName { get; set; }
+        public Collections Collections { get; set; }
+    }
+
+    public class Collections
+    {
+        public string User { get; set; }
+        public string Device { get; set; }
+        public string TcpDevice { get; set; }
     }
 }

@@ -127,7 +127,7 @@ namespace Services
                         var data = Encoding.UTF8.GetString(buffer,0, byteCount);
 
                         Dictionary<string, string> parsedData = ParseTcpData(data, device.TcpData);
-                        _mqttProducer.PublishMessage("telemetry", $"Parsed Data: {string.Join(", ", parsedData.Select(kvp => $"{kvp.Key}: {kvp.Value}"))}", MqttQualityOfServiceLevel.AtMostOnce);
+                        _mqttProducer.PublishMessage("telemetry/tcp", $"Parsed Data: {string.Join(", ", parsedData.Select(kvp => $"{kvp.Key}: {kvp.Value}"))}", MqttQualityOfServiceLevel.AtMostOnce);
 
                         onDataReceived?.Invoke(parsedData);
                     }
@@ -138,7 +138,7 @@ namespace Services
             catch (Exception e)
             {
                 _logger.Error($"Error during TCP communication: {e.Message}");
-                _mqttProducer.PublishMessage("telemetry", $"Error during TCP communication: {e.Message}", MqttQualityOfServiceLevel.AtMostOnce);
+                _mqttProducer.PublishMessage("telemetry/tcp", $"Error during TCP communication: {e.Message}", MqttQualityOfServiceLevel.AtMostOnce);
             }
         }
 
@@ -154,6 +154,7 @@ namespace Services
                 {
                     client.Close();
                     _logger.Information("Communication Stopped");
+                    _mqttProducer.PublishMessage("telemetry/tcp", $"Communication Stopped", MqttQualityOfServiceLevel.AtMostOnce);
                 }
 
                 client = null;
@@ -167,6 +168,7 @@ namespace Services
         public async Task UpdateTcpDevice(string id, TcpDevice tcpDevice)
         {
             await _tcpDevice.ReplaceOneAsync(d => d.Id == id, tcpDevice);
+            _logger.Information($"Updated tcp device: {tcpDevice.DeviceName},{DateTime.Now}");
         }
     }
 }

@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Services;
+using Serilog;
+using Serilog.Core;
 
 namespace McsAPI.Controllers
 {
@@ -8,10 +10,12 @@ namespace McsAPI.Controllers
     public class LoginController : ControllerBase
     {
         private readonly LoginService _loginService;
+        private readonly Logger _logger;
 
-        public LoginController(LoginService loginService)
+        public LoginController(LoginService loginService, Logger logger)
         {
             _loginService = loginService;
+            _logger = logger;
         }
 
         [HttpPost("Authenticate")]
@@ -22,6 +26,7 @@ namespace McsAPI.Controllers
             if (validateUser)
             {
                 var token = _loginService.GenerateJwtToken(loginRequest.Username);
+                _logger.Information($"{loginRequest.Username} login at {DateTime.Now}");
                 return Ok(new { Token = token });
             }
 
