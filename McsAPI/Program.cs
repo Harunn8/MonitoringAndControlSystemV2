@@ -24,6 +24,12 @@ using McsCore.Entities;
 using MQTTnet.Client.Options;
 using Services.Base;
 using McsInfrastructure.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using Serilog;
+using Serilog.Events;
+
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -34,9 +40,7 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.File("logs/log.txt", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 
-Log.Information("Logger is configured and started");
-
-Log.Information("Mqtt Connection preparing...");
+builder.Host.UseSerilog();
 
 var mqttOptions = new MqttClientOptionsBuilder()
     .WithClientId("telemetry")

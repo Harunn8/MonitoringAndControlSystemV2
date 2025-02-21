@@ -8,25 +8,24 @@ using MQTTnet.Client.Options;
 using EventBusMqtt.Connection.Base;
 using MQTTnet;
 using MQTTnet.Client;
+using Serilog;
 
 
 namespace EventBusMqtt.Connection
 {
     public class MqttConnection : IMqttConnection
     {
-        IMqttClientOptions _mqttClientOptions;
-        private IMqttClient _mqttClient;
-        private ILogger _logger;
+        private readonly IMqttClientOptions _mqttOptions;
+        private readonly IMqttClient _mqttClient;
         private bool _disposed;
         private bool _isConnect = false;
 
-        public MqttConnection(IMqttClientOptions mqttClientOptions, IMqttClient mqttClient, ILogger logger)
+        public MqttConnection(IMqttClientOptions mqttClientOptions, IMqttClient mqttClient)
         {
+            _mqttOptions = mqttClientOptions;
             _mqttClient = mqttClient;
-            _mqttClientOptions = mqttClientOptions;
-            _logger = logger;
 
-            if(!_mqttClient.IsConnected && !_disposed)
+            if (!_mqttClient.IsConnected && !_disposed)
             {
                 TryConnect();
             }
@@ -54,20 +53,20 @@ namespace EventBusMqtt.Connection
             {
                 _mqttClient.UseDisconnectedHandler(e =>
                 {
-                    _logger.Information("Disconnected from MQTT Server. Reconnecting...");
+                    Log.Information("Disconnected from MQTT Server. Reconnecting...");
                     while (_mqttClient.IsConnected == false)
                     {
                         _mqttClient.ReconnectAsync();
-                        _logger.Error("Could not connect to MQTT Server");
+                        Log.Error("Could not connect to MQTT Server");
                     }
-                    _mqttClient.ConnectAsync(_mqttClientOptions).Wait();
-                    _logger.Information("Mqtt connection was establish");
+                    _mqttClient.ConnectAsync(_mqttOptions).Wait();
+                    Log.Information("Mqtt connection was establish");
                     _isConnect = true;
                 });
             }
             catch (Exception ex) 
             {
-                _logger.Error("Failed to established MQTT connection: {ErrorMessage}", ex.Message);
+                Log.Error("Failed to established MQTT connection: {ErrorMessage}", ex.Message);
                 throw;
             }
         }
