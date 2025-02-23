@@ -2,7 +2,7 @@
 using SnmpSharpNet;
 using EventBusMqtt.Producer;
 using Services.Base;
-using Logger = Serilog.Core.Logger;
+using Microsoft.Extensions.Logging;
 using MQTTnet.Protocol;
 using Serilog;
 
@@ -11,13 +11,11 @@ namespace Services
     public class SnmpService : ISnmpService
     {
         private readonly MqttProducer _mqttProducer;
-        private readonly Logger _logger;
         private bool _isRunning = false;
 
-        public SnmpService(MqttProducer mqttProducer, Logger logger)
+        public SnmpService(MqttProducer mqttProducer)
         {
             _mqttProducer = mqttProducer;
-            _logger = logger;
         }
 
         public async Task StartSnmpCommunication(string ipAddress, int port, List<string> oidList, Action<string> onMessageReceived, CancellationToken cancellationToken)

@@ -1,35 +1,21 @@
 using McsAPI.Controllers;
-using McsApplication.Services;
 using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using MongoDB.Driver;
 using Services;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Serializers;
-using MongoDB.Bson.Serialization;
 using Serilog;
+using MQTTnet;
 using MQTTnet.Client;
 using EventBusMqtt.Connection.Base;
 using EventBusMqtt.Connection;
 using EventBusMqtt.Producer;
-using MQTTnet;
-using McsApplication.Models;
-using AutoMapper;
-using McsApplication.Mapper;
-using EventBusMqtt.Connection.Base;
-using EventBusMqtt.Producer;
-using McsAPI.Controllers;
-using McsCore.Entities;
 using MQTTnet.Client.Options;
-using Services.Base;
+using McsApplication.Mapper;
+using McsCore.Entities;
 using McsInfrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.DependencyInjection;
-using Serilog;
-using Serilog;
-using Serilog.Events;
-
+using McsApplication.Services.Base;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -39,24 +25,31 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .WriteTo.File("logs/log.txt", rollingInterval: RollingInterval.Day)
     .CreateLogger();
-
+Log.Information("Logger started");
 builder.Host.UseSerilog();
 
+Log.Information("Mqtt connection is preparing...");
 var mqttOptions = new MqttClientOptionsBuilder()
     .WithClientId("telemetry")
     .WithTcpServer("127.0.0.1", 1883)
     .WithCleanSession()
     .Build();
 
+builder.Services.AddSingleton<IMqttClientOptions>(mqttOptions);
 builder.Services.AddSingleton<IMqttClient>(_ => new MqttFactory().CreateMqttClient());
-builder.Services.AddSingleton<IMqttConnection>(_ => new MqttConnection(mqttOptions, new MqttFactory().CreateMqttClient()));
+
+builder.Services.AddSingleton<IMqttConnection>(sp =>
+{
+    var clientOptions = sp.GetRequiredService<IMqttClientOptions>();
+    var client = sp.GetRequiredService<IMqttClient>();
+    return new MqttConnection(clientOptions, client);
+});
+
 builder.Services.AddSingleton<MqttProducer>();
 
-builder.Services.AddSingleton<ISnmpService, SnmpService>();
-builder.Services.AddTransient<WebSocketHandlerSnmp>();
-builder.Services.AddTransient<WebSocketHandlerTcp>();
+Log.Information("Mqtt connection was establish");
 
-Log.Information("MongoDB connection preparing is started");
+Log.Information("MongoDB connection is preparing...");
 var mongoDbSettings = configuration.GetSection("MongoDbSettings").Get<MongoDBSettings>();
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
@@ -69,14 +62,20 @@ builder.Services.AddSingleton(sp =>
     return mongoClient.GetDatabase(mongoDbSettings.DatabaseName);
 });
 
-builder.Services.AddScoped<McsContextSeed>();
-builder.Services.AddScoped<SnmpParserService>();
+var seedService = builder.Services.AddScoped<McsContextSeed>();
+
+Log.Information("MongoDB connection was establish");
+
+builder.Services.AddScoped<SnmpService>();
 builder.Services.AddScoped<TcpService>();
 builder.Services.AddScoped<UserService>();
-builder.Services.AddScoped<LoginService>();
+builder.Services.AddScoped<ISnmpDeviceService, SnmpDeviceService>();
 builder.Services.AddScoped<SnmpDeviceService>();
-builder.Services.AddScoped<TcpService>();
-builder.Services.AddScoped<SnmpService>();
+builder.Services.AddScoped<WebSocketHandlerSnmp>();
+builder.Services.AddScoped<WebSocketHandlerTcp>();
+builder.Services.AddScoped<LoginService>();
+builder.Services.AddScoped<CancellationTokenSource>();
+
 
 //builder.Services.AddScoped<DeviceDataService>();
 
@@ -169,13 +168,6 @@ app.UseCors("AllowAllOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
 
-using (var scope = app.Services.CreateScope())
-{
-    var seedService = scope.ServiceProvider.GetRequiredService<McsContextSeed>();
-    await seedService.UserSeedAsync();
-    await seedService.DeviceSeedAsync();
-}
-
 app.MapControllers();
 
 app.Map("/ws/snmp", async context =>
@@ -185,6 +177,7 @@ app.Map("/ws/snmp", async context =>
         var webSocket = await context.WebSockets.AcceptWebSocketAsync();
         var webSocketHandlerSnmp = app.Services.GetRequiredService<WebSocketHandlerSnmp>();
         await webSocketHandlerSnmp.HandleAsyncSnmp(context, webSocket);
+        Log.Information("Snmp socket started");
     }
     else
     {
@@ -199,6 +192,7 @@ app.Map("/ws/tcp", async context =>
         var webSocket = await context.WebSockets.AcceptWebSocketAsync();
         var webSocketHandlerTcp = app.Services.GetRequiredService<WebSocketHandlerTcp>();
         await webSocketHandlerTcp.HandleAsyncTcp(context, webSocket);
+        Log.Information("Tcp socket started");
     }
     else
     {

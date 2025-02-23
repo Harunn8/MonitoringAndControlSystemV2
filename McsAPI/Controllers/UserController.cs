@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using McsApplication.Services;
 using Services;
 using EventBusMqtt.Producer;
-using Serilog.Core;
+using Serilog;
 using McsCore.Entities;
 
 namespace McsAPI.Controllers
@@ -14,13 +14,11 @@ namespace McsAPI.Controllers
     public class UserController : ControllerBase
     {
         private readonly UserService _userService;
-        private Logger _logger;
         private MqttProducer _mqttProducer;
 
-        public UserController(UserService userService, Logger logger, MqttProducer mqttProducer)
+        public UserController(UserService userService, MqttProducer mqttProducer)
         {
            _userService = userService;
-            _logger = logger;
             _mqttProducer = mqttProducer;
         }
 
@@ -81,6 +79,17 @@ namespace McsAPI.Controllers
 
             await _userService.DeleteUser(id);
             return Ok("User deleted");
+        }
+
+        [HttpGet("GetUserByName")]
+        public async Task<IActionResult> GetUserByName(string name)
+        {
+            var user = await _userService.GetUserByUserName(name);
+            if (user == null)
+            {
+                return BadRequest("user not found");
+            }
+            return Ok(user);
         }
     }
 }

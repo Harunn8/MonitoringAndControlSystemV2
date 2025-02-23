@@ -13,10 +13,10 @@ namespace McsCore.Entities
         [BsonElement("userName")]
         public string UserName { get; set; }
 
-        [BsonElement]
+        [BsonElement("password")]
         public string Password { get; set; }
 
-        [BsonElement]
+        [BsonElement("loginDate")]
         public DateTime LoginDate { get; set; }
     }
 }

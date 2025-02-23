@@ -14,15 +14,13 @@ namespace McsAPI.Controllers
     {
         private readonly SnmpService _snmpService;
         private readonly SnmpDeviceService _snmpDeviceService;
-        private readonly Logger _logger;
         private MqttProducer _mqttProducer;
         private CancellationTokenSource _cancellationTokenSource;
 
-        public WebSocketHandlerSnmp(SnmpService snmpService, SnmpDeviceService snmpDeviceService, Logger logger, MqttProducer mqttProducer, CancellationTokenSource cancellationTokenSource)
+        public WebSocketHandlerSnmp(SnmpService snmpService, SnmpDeviceService snmpDeviceService, MqttProducer mqttProducer, CancellationTokenSource cancellationTokenSource)
         {
             _snmpService = snmpService;
             _snmpDeviceService = snmpDeviceService;
-            _logger = logger;
             _mqttProducer = mqttProducer;
             _cancellationTokenSource = cancellationTokenSource;
         }

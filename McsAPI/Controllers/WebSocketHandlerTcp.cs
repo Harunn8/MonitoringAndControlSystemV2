@@ -13,14 +13,12 @@ namespace McsAPI.Controllers
     {
         private readonly TcpService _tcpService;
         private readonly MqttProducer _mqttProducer;
-        private readonly Logger _logger;
         private CancellationTokenSource _cancellationTokenSource;
 
-        public WebSocketHandlerTcp(TcpService tcpService, MqttProducer mqttProducer, Logger logger,CancellationTokenSource cancellationTokenSource)
+        public WebSocketHandlerTcp(TcpService tcpService, MqttProducer mqttProducer, CancellationTokenSource cancellationTokenSource)
         {
             _tcpService = tcpService;
             _mqttProducer = mqttProducer;
-            _logger = logger;
             _cancellationTokenSource = cancellationTokenSource;
 
         }

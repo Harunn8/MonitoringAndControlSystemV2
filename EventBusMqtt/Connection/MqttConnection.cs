@@ -1,15 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Serilog;
 using MQTTnet.Client.Options;
 using EventBusMqtt.Connection.Base;
 using MQTTnet;
 using MQTTnet.Client;
-using Serilog;
-
 
 namespace EventBusMqtt.Connection
 {
@@ -49,7 +43,7 @@ namespace EventBusMqtt.Connection
 
         public void TryConnect()
         {
-           try
+            try
             {
                 _mqttClient.UseDisconnectedHandler(e =>
                 {

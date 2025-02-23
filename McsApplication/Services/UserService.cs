@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using MongoDB.Driver;
 using System.Security.Cryptography;
 using System.Text;
 using Services.Base;
 using McsCore.Entities;
+using AutoMapper;
+using McsApplication.Responses;
 
 namespace Services
 {
@@ -14,10 +14,12 @@ namespace Services
         private readonly IMongoCollection<User> _user;
         private static readonly string key = "BuSadeceBirOrnekAnahtar12345_301";
         private static readonly string IV = "OrnekIV123456789";
+        private readonly IMapper _mapper;
 
-        public UserService(IMongoDatabase database)
+        public UserService(IMongoDatabase database, IMapper mapper)
         {
             _user = database.GetCollection<User>("User");
+            _mapper = mapper;
         }
 
         public async Task<List<User>> GetUsersAsync()
@@ -107,6 +109,12 @@ namespace Services
                     }
                 }
             }
+        }
+
+        public async Task<User> GetUserByUserName(string name)
+        {
+            var user =  await _user.Find(u => u.UserName == name).FirstOrDefaultAsync();
+            return user;
         }
     }
 }

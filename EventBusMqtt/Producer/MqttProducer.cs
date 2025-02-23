@@ -3,16 +3,22 @@ using EventBusMqtt.Connection;
 using MQTTnet.Protocol;
 using MQTTnet;
 using MQTTnet.Client;
+using MQTTnet.Client.Options;
+using EventBusMqtt.Connection.Base;
 
 namespace EventBusMqtt.Producer
 {
     public class MqttProducer
     {
-        private readonly MqttConnection _mqttConnection;
+        private readonly IMqttConnection _mqttConnection;
+        private readonly IMqttClient _mqttClient;
+        private readonly IMqttClientOptions _mqttOptions;
 
-        public MqttProducer(MqttConnection mqttConnection)
+        public MqttProducer(IMqttConnection mqttConnection,IMqttClient mqttClient, IMqttClientOptions mqttClientOptions)
         {
             _mqttConnection = mqttConnection;
+            _mqttClient = mqttClient;
+            _mqttOptions = mqttClientOptions;
         }
 
         public virtual bool GetMqttConnectionStatus()

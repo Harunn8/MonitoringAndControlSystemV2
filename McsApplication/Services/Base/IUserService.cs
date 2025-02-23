@@ -17,6 +17,7 @@ namespace Services.Base
         public Task UpdateUser(string id ,User user);
         public Task DeleteUser(string id);
         public Task<User> GetUserByUserNameAndPasswordAsync(string userName, string password);
+        public Task<User> GetUserByUserName(string name);
         public string Encrypt(string plainText);
         public string Decrypt(string encryptedText);
     }

@@ -1,18 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using AutoMapper;
 using EventBusMqtt.Producer;
 using McsApplication.Models;
 using McsApplication.Responses;
-using McsApplication.Services.Base;
 using McsCore.Entities;
 using MongoDB.Driver;
-using MQTTnet.Client;
 using Services.Base;
 using MQTTnet.Protocol;
 using Serilog;
@@ -25,15 +19,13 @@ namespace Services
         private readonly IMapper _mapper;
         private readonly MqttProducer _mqttProducer;
         private readonly CancellationTokenSource cancellationToken;
-        private readonly ILogger _logger;
         private bool _isRunning = false;
-        public TcpService(IMongoDatabase database, MqttProducer mqttProducer, IMapper mapper, ILogger logger)
+        public TcpService(IMongoDatabase database, MqttProducer mqttProducer, IMapper mapper)
         {
             _tcpDevice = database.GetCollection<TcpDevice>("TcpDevice");
             cancellationToken = new CancellationTokenSource();
             _mqttProducer = mqttProducer;
             _mapper = mapper;
-            _logger = logger;
         }
         public async Task AddTcpDevice(TcpDevice tcpDevice)
         {
@@ -100,15 +92,15 @@ namespace Services
             try
             {
                 var device = await GetTcpDeviceByIpAndPort(ipAddress, port);
-                _logger.Information($"Connecting {device.DeviceName}");
+                Log.Information($"Connecting {device.DeviceName}");
                 _mqttProducer.PublishMessage("telemetry/tcp",$"Connecting {device.DeviceName}", MqttQualityOfServiceLevel.AtLeastOnce);
 
                 while (!cancellationToken.IsCancellationRequested && !_isRunning)
                 {
                     using var client = new TcpClient();
                     await client.ConnectAsync(device.IpAddress, device.Port);
-                    
-                    _logger.Information($"Connected {device.DeviceName}");
+
+                    Log.Information($"Connected {device.DeviceName}");
                     _mqttProducer.PublishMessage("telemetry / tcp",$"Connected { device.DeviceName} ", MqttQualityOfServiceLevel.AtLeastOnce);
 
                     _isRunning = true;
@@ -137,7 +129,7 @@ namespace Services
             }
             catch (Exception e)
             {
-                _logger.Error($"Error during TCP communication: {e.Message}");
+                Log.Error($"Error during TCP communication: {e.Message}");
                 _mqttProducer.PublishMessage("telemetry/tcp", $"Error during TCP communication: {e.Message}", MqttQualityOfServiceLevel.AtMostOnce);
             }
         }
@@ -153,7 +145,7 @@ namespace Services
                 if (client != null && client.Connected)
                 {
                     client.Close();
-                    _logger.Information("Communication Stopped");
+                    Log.Information("Communication Stopped");
                     _mqttProducer.PublishMessage("telemetry/tcp", $"Communication Stopped", MqttQualityOfServiceLevel.AtMostOnce);
                 }
 
@@ -161,14 +153,14 @@ namespace Services
             }
             catch (Exception e)
             {
-                _logger.Error($"Error Stopping Communication: {e.Message}");
+                Log.Error($"Error Stopping Communication: {e.Message}");
             }
         }
 
         public async Task UpdateTcpDevice(string id, TcpDevice tcpDevice)
         {
             await _tcpDevice.ReplaceOneAsync(d => d.Id == id, tcpDevice);
-            _logger.Information($"Updated tcp device: {tcpDevice.DeviceName},{DateTime.Now}");
+            Log.Information($"Updated tcp device: {tcpDevice.DeviceName},{DateTime.Now}");
         }
     }
 }
