@@ -4,6 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using McsApplication.Models;
+using McsCore.Entities;
+using McsInfrastructure.Data;
+using MongoDB.Bson.Serialization.IdGenerators;
+using MongoDB.Driver;
+using AutoMapper;
 
 namespace McsApplication.Responses
 {

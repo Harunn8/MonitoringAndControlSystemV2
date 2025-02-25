@@ -24,7 +24,7 @@ namespace McsAPI.Controllers
             {
                 var token = _loginService.GenerateJwtToken(loginRequest.Username);
                 Log.Information($"{loginRequest.Username} login at {DateTime.Now}");
-                return Ok(new { Token = token });
+                return Ok(new { Token = "Bearer " + token });
             }
 
             return Unauthorized("Invalid username or password");

@@ -6,6 +6,7 @@ using Services.Base;
 using McsCore.Entities;
 using AutoMapper;
 using McsApplication.Responses;
+using MongoDB.Bson.Serialization.IdGenerators;
 
 namespace Services
 {
@@ -48,16 +49,16 @@ namespace Services
             await _user.DeleteOneAsync(u => u.Id == id);
         }
 
-        public async Task<User> GetUserByUserNameAndPasswordAsync(string userName, string password)
+        public async Task<User> GetUserByUserNameAndPasswordAsync(string userName,string password)
         {
-            var user = await _user.Find(u => u.UserName == userName && u.Password == password).FirstOrDefaultAsync();
+            var user = await _user.Find(u => u.UserName == userName).FirstOrDefaultAsync();
             if (user != null)
             {
-                user.Password = Decrypt(user.Password);
-            }
-            else if (user.Password != password)
-            {
-                return null;
+                var userPassword = Decrypt(user.Password);
+                if (userPassword != password)
+                {
+                    return null;
+                }
             }
             return user;
         }
@@ -71,18 +72,19 @@ namespace Services
             {
                 aes.Key = keys;
                 aes.IV = iv;
+                aes.Mode = CipherMode.CBC;
+                aes.Padding = PaddingMode.PKCS7;
 
                 using (var memoryStream = new MemoryStream())
                 {
-                    using (var cryptoStream = new CryptoStream(memoryStream,aes.CreateEncryptor(), CryptoStreamMode.Write))
+                    using (var cryptoStream = new CryptoStream(memoryStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
                     {
-                        using (var writer = new StreamWriter(cryptoStream, Encoding.UTF8, 1024, leaveOpen: true))
+                        using (var writer = new StreamWriter(cryptoStream))
                         {
                             writer.Write(plainText);
                         }
-                        cryptoStream.FlushFinalBlock();
-                        return Convert.ToBase64String(memoryStream.ToArray());
                     }
+                    return Convert.ToBase64String(memoryStream.ToArray());
                 }
             }
         }
@@ -91,16 +93,18 @@ namespace Services
         {
             byte[] keys = Encoding.UTF8.GetBytes(key);
             byte[] iv = Encoding.UTF8.GetBytes(IV);
+            byte[] cipherTextBytes = Convert.FromBase64String(encryptedText);
 
             using (Aes aes = Aes.Create())
             {
                 aes.Key = keys;
                 aes.IV = iv;
+                aes.Mode = CipherMode.CBC;
+                aes.Padding = PaddingMode.PKCS7;
 
-                using (var memoryStream = new MemoryStream())
+                using (var memoryStream = new MemoryStream(cipherTextBytes))
                 {
-                    using (var cryptoStream =
-                           new CryptoStream(memoryStream, aes.CreateDecryptor(), CryptoStreamMode.Read))
+                    using (var cryptoStream = new CryptoStream(memoryStream, aes.CreateDecryptor(), CryptoStreamMode.Read))
                     {
                         using (var reader = new StreamReader(cryptoStream))
                         {
