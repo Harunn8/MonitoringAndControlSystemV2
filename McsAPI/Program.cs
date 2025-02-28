@@ -28,24 +28,41 @@ Log.Logger = new LoggerConfiguration()
 Log.Information("Logger started");
 builder.Host.UseSerilog();
 
-Log.Information("Mqtt connection is preparing...");
-var mqttOptions = new MqttClientOptionsBuilder()
-    .WithClientId("telemetry")
-    .WithTcpServer("127.0.0.1", 1883)
-    .WithCleanSession()
-    .Build();
+//Log.Information("Mqtt connection is preparing...");
+//var mqttOptions = new MqttClientOptionsBuilder()
+//    .WithClientId("telemetry")
+//    .WithTcpServer("127.0.0.1", 1883)
+//    .WithCleanSession()
+//    .Build();
 
-builder.Services.AddSingleton<IMqttClientOptions>(mqttOptions);
+//builder.Services.AddSingleton<IMqttClientOptions>(mqttOptions);
+//builder.Services.AddSingleton<IMqttClient>(_ => new MqttFactory().CreateMqttClient());
+
+//builder.Services.AddSingleton<IMqttConnection>(sp =>
+//{
+//    var clientOptions = sp.GetRequiredService<IMqttClientOptions>();
+//    var client = sp.GetRequiredService<IMqttClient>();
+//    return new MqttConnection(clientOptions, client);
+//});
+
+//builder.Services.AddSingleton<MqttProducer>();
+
 builder.Services.AddSingleton<IMqttClient>(_ => new MqttFactory().CreateMqttClient());
-
-builder.Services.AddSingleton<IMqttConnection>(sp =>
+builder.Services.AddSingleton<IMqttClientOptions>(sp =>
 {
-    var clientOptions = sp.GetRequiredService<IMqttClientOptions>();
-    var client = sp.GetRequiredService<IMqttClient>();
-    return new MqttConnection(clientOptions, client);
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    return new MqttClientOptionsBuilder()
+        .WithClientId("telemetry")
+        .WithTcpServer(configuration["EventBusMqtt:Server"], int.Parse(configuration["EventBusMqtt:Port"]))
+        .WithCleanSession()
+        .Build();
 });
 
-builder.Services.AddSingleton<MqttProducer>();
+builder.Services.AddScoped<IMqttConnection, MqttConnection>();
+builder.Services.AddScoped<MqttProducer>();
+
+
+
 
 Log.Information("Mqtt connection was establish");
 
