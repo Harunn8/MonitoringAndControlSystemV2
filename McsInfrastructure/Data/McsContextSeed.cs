@@ -71,6 +71,54 @@ namespace McsInfrastructure.Data
             }
         }
 
-        // TODO : Tcp Device için de Seed verileri eklenecek
+        public async Task TcpDeviceSeedAsync()
+        {
+            var device = new List<TcpDevice>
+            {
+                new TcpDevice
+                {
+                    Id= ObjectId.GenerateNewId().ToString(),
+                    DeviceName = "Acu Tcp Device",
+                    IpAddress = "10.0.90.230",
+                    Port = 5006,
+                    TcpFormat = new List<string>
+                    {
+                        "R3#","R4#","R5#"
+                    },
+                    TcpData = new List<TcpData> 
+                    {
+                        new TcpData 
+                        {
+                            Request = "R3#",
+                            ParameterName = "Acu_Mode"
+                        }
+                    }
+                },
+                 new TcpDevice
+                {
+                    Id= ObjectId.GenerateNewId().ToString(),
+                    DeviceName = "Acu Tcp Device",
+                    IpAddress = "10.0.90.230",
+                    Port = 5006,
+                    TcpFormat = new List<string>
+                    {
+                        "R3#","R4#","R5#"
+                    },
+                    TcpData = new List<TcpData>
+                    {
+                        new TcpData
+                        {
+                            Request = "R4#",
+                            ParameterName = "Acu_ActualAzPosition"
+                        }
+                    }
+                }
+            };
+
+            if (await _tcpDeviceCollection.CountDocumentsAsync(_ => true) == 0)
+            {
+                await _tcpDeviceCollection.InsertManyAsync(device);
+            }
+        }
     }
 }

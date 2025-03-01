@@ -28,24 +28,6 @@ Log.Logger = new LoggerConfiguration()
 Log.Information("Logger started");
 builder.Host.UseSerilog();
 
-//Log.Information("Mqtt connection is preparing...");
-//var mqttOptions = new MqttClientOptionsBuilder()
-//    .WithClientId("telemetry")
-//    .WithTcpServer("127.0.0.1", 1883)
-//    .WithCleanSession()
-//    .Build();
-
-//builder.Services.AddSingleton<IMqttClientOptions>(mqttOptions);
-//builder.Services.AddSingleton<IMqttClient>(_ => new MqttFactory().CreateMqttClient());
-
-//builder.Services.AddSingleton<IMqttConnection>(sp =>
-//{
-//    var clientOptions = sp.GetRequiredService<IMqttClientOptions>();
-//    var client = sp.GetRequiredService<IMqttClient>();
-//    return new MqttConnection(clientOptions, client);
-//});
-
-//builder.Services.AddSingleton<MqttProducer>();
 
 builder.Services.AddSingleton<IMqttClient>(_ => new MqttFactory().CreateMqttClient());
 builder.Services.AddSingleton<IMqttClientOptions>(sp =>
@@ -79,7 +61,7 @@ builder.Services.AddSingleton(sp =>
     return mongoClient.GetDatabase(mongoDbSettings.DatabaseName);
 });
 
-var seedService = builder.Services.AddScoped<McsContextSeed>();
+ builder.Services.AddScoped<McsContextSeed>();
 
 Log.Information("MongoDB connection was establish");
 
@@ -92,7 +74,6 @@ builder.Services.AddScoped<WebSocketHandlerSnmp>();
 builder.Services.AddScoped<WebSocketHandlerTcp>();
 builder.Services.AddScoped<LoginService>();
 builder.Services.AddScoped<CancellationTokenSource>();
-
 
 //builder.Services.AddScoped<DeviceDataService>();
 
@@ -184,6 +165,15 @@ app.UseCors("AllowAllOrigins");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+using (var scope = app.Services.CreateScope())
+{
+    var seedService = scope.ServiceProvider.GetRequiredService<McsContextSeed>();
+
+    await seedService.UserSeedAsync();
+    await seedService.DeviceSeedAsync();
+    await seedService.TcpDeviceSeedAsync();
+}
 
 app.MapControllers();
 

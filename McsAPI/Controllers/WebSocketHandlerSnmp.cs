@@ -84,86 +84,85 @@ namespace McsAPI.Controllers
                 Log.Error($"Error in WebSocket communication: {ex.Message}");
                 await SendMessage(webSocket, $"An error occurred: {ex.Message}");
             }
+        }
 
-
-            void StartCommunication(Dictionary<string, string> parameters, WebSocket webSocket, CancellationToken cancellationToken)
+        private async void StartCommunication(Dictionary<string, string> parameter, WebSocket webSocket, CancellationToken cancellationToken)
+        {
+            if (parameter == null || parameter.TryGetValue("ipAddress", out var ipAddress)) 
             {
-                if (parameters == null || !parameters.TryGetValue("ipAddress", out var ipAddress))
+                SendMessage(webSocket, "Ip Address is missing").Wait();
+                return;
+            }
+
+            if(!parameter.TryGetValue("port", out var portString) || !int.TryParse(portString, out var port))
+            {
+                SendMessage(webSocket, "Port is missing");
+                return;
+            }
+
+            var device = await _snmpDeviceService.GetSnmpDeviceByIpAndPort(ipAddress, port);
+            if (device == null) 
+            {
+                return;
+            }
+
+            var oidList = device.OidList;
+
+            try
+            {
+                var oidListAsString = oidList.Select(mapping => mapping.Oid).ToList();
+
+                _ = _snmpService.StartSnmpCommunication(ipAddress, device.Port, oidListAsString, async (data) =>
                 {
-                    SendMessage(webSocket, "IP address is missing").Wait();
-                    return;
-                }
-
-                if (!parameters.TryGetValue("port", out var portString) || !int.TryParse(portString, out var port))
-                {
-                    SendMessage(webSocket, "Port is missing").Wait();
-                    return;
-                }
-
-                var result = _snmpDeviceService.GetSnmpDeviceByIpAndPort(ipAddress, port).Result;
-                if (result == null)
-                {
-                    return;
-                }
-
-
-                var oidList = result.OidList;
-
-                try
-                {
-                    var oidListAsString = oidList.Select(mapping => mapping.Oid).ToList();
-
-                    _ = _snmpService.StartSnmpCommunication(ipAddress, result.Port, oidListAsString, async (data) =>
+                    if (webSocket.State == WebSocketState.Open)
                     {
-                        if (webSocket.State == WebSocketState.Open)
+                        var jsonMessage = JsonConvert.SerializeObject(new
                         {
-                            var jsonMessage = JsonConvert.SerializeObject(new
-                            {
 
-                            });
-                            await SendMessage(webSocket, data);
-                        }
-                    }, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error($"Error starting communication: {ex.Message}");
-                    SendMessage(webSocket, $"Error starting communication: {ex.Message}");
-                }
+                        });
+                        await SendMessage(webSocket, data);
+                    }
+                }, cancellationToken);
             }
-             void StopCommunication()
+            catch(Exception ex) 
             {
-                try
-                {
-                    _cancellationTokenSource?.Cancel();
-                    _cancellationTokenSource?.Dispose();
-                    _cancellationTokenSource = null;
+                Log.Error($"Error starting communication: {ex.Message}");
+                SendMessage(webSocket, $"Error starting communication: {ex.Message}");
+            }
+        }
 
-                    _snmpService.StopSnmpCommunication();
-                }
-                catch (Exception ex)
-                {
-                    Log.Error($"Error stopping communication: {ex.Message}");
-                }
+        private void StopCommunication()
+        {
+            try
+            {
+                _cancellationTokenSource?.Cancel();
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = null;
+
+                _snmpService.StopSnmpCommunication();
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Error stopping communication: {ex.Message}");
+            }
+        }
+
+        private async Task SendMessage(WebSocket webSocket, string message)
+        {
+            if(webSocket.State != WebSocketState.Open)
+            {
+                Log.Warning("Web Socket is not openç Unable to send message");
+                return;
             }
 
-             async Task SendMessage(WebSocket webSocket, string message)
+            var buffer = Encoding.UTF8.GetBytes(message);
+            try
             {
-                if (webSocket.State != WebSocketState.Open)
-                {
-                    Log.Warning("WebSocket is not open. Unable to send message.");
-                    return;
-                }
-
-                var buffer = Encoding.UTF8.GetBytes(message);
-                try
-                {
-                    await webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error($"Error sending message: {ex.Message}");
-                }
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
+            catch(Exception ex ) 
+            {
+                Log.Error($"Error sending message: {ex.Message}");
             }
         }
     }
